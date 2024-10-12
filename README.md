@@ -33,7 +33,7 @@ A simple and flexible library for handling RESTful API requests using pure C# `H
 1. Download the source code or clone the repository.
 
     ```bash
-    git clone [link here]
+    git clone https://github.com/DarkenSoda/RestHandler.git
     ```
 
 2. Ensure that you have `Newtonsoft.Json` installed in your project. You can install it via NuGet:
