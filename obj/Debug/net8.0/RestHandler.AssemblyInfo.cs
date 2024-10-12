@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RestHandler")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c0c386bb0cda09840f62774116fa441419b4811e")]
 [assembly: System.Reflection.AssemblyProductAttribute("RestHandler")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RestHandler")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
