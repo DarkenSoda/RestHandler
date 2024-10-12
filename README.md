@@ -5,6 +5,7 @@ A simple and flexible library for handling RESTful API requests using pure C# `H
 ## Jump to
 
 - [Features](#features)
+- [Roadmap](#roadmap)
 - [Installation](#installation)
 - [Usage](#usage)
   - [GET Example](#sending-a-get-request)
@@ -25,6 +26,10 @@ A simple and flexible library for handling RESTful API requests using pure C# `H
 - Authorization support (e.g., Bearer tokens, custom schemes).
 - Easy timeout configuration.
 - Chainable `HttpRequestMessageBuilder` for constructing custom requests.
+
+## Roadmap
+
+- **Exception Handling**: Currently, this library does not handle exception handling. Future updates may include built-in support for managing exceptions to improve usability and robustness.
 
 ## Installation
 
