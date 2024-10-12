@@ -1,7 +1,5 @@
 # RestHandler
 
----
-
 A simple and flexible library for handling RESTful API requests using pure C# `HttpClient` and `Newtonsoft.Json`. This library allows you to easily send `GET`, `POST`, `PUT`, and `DELETE` requests with support for headers, authentication, and custom content types.
 
 ## Jump to
