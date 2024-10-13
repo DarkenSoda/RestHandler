@@ -29,7 +29,20 @@ A simple and flexible library for handling RESTful API requests using pure C# `H
 
 ## Roadmap
 
+Here is the current roadmap for future updates.
+
 - **Exception Handling**: Currently, this library does not handle exception handling. Future updates may include built-in support for managing exceptions to improve usability and robustness.
+- **JsonName Attribute**: Attribute to change the name of a field in the object scheme
+  ```csharp
+    public class Student {
+      [JsonName("fullName")]
+      string Name { get; set; }
+      
+      [JsonName("age")]
+      int Age { get; set; }
+    }
+  ```
+  this makes it so you can Parse a Json with a scheme `{ "fullName": "MyName", "age": 23 }` to the Student class even if the fields are named differently.
 
 ## Installation
 
