@@ -210,7 +210,7 @@ Contributions are welcome! If you'd like to contribute to this project, please f
 
 1. Fork the repository.
 2. Create a new branch for your feature or bugfix (`git checkout -b feature-name`).
-3. Add your feature or fix and update the [CONTRIBUTORS](CONTRIBUTORS) file with your name.
+3. Add your feature or fix and update the [CONTRIBUTORS](CONTRIBUTORS.md) file with your name.
 4. Commit your changes (`git commit -m 'Add feature'`).
 5. Push to the branch (`git push origin feature-name`).
 6. Open a pull request.
