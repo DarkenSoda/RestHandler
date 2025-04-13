@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 
 namespace DarkenSoda.RestHandler
 {
+    [Obsolete("HttpRequestMessageBuilder is deprecated. Use The RestRequest class instead.")]
     public class HttpRequestMessageBuilder
     {
         private readonly HttpRequestMessage request;

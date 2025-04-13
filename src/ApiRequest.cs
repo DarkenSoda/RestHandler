@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 
 namespace DarkenSoda.RestHandler
 {
+    [Obsolete("This class is deprecated and will be removed in future versions. Please use the new RestRequest class instead.")]
     public static class ApiRequest
     {
         /// <summary>

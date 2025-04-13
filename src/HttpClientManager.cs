@@ -24,12 +24,12 @@ namespace DarkenSoda.RestHandler
         #endregion
 
         #region Headers
-        public static void AddHeader(string key, string value)
+        public static void AddDefaultHeader(string key, string value)
         {
             Client.DefaultRequestHeaders.Add(key, value);
         }
 
-        public static void AddHeaders(Dictionary<string, string> headers)
+        public static void AddDefaultHeaders(Dictionary<string, string> headers)
         {
             if (headers == null)
                 return;
@@ -40,31 +40,42 @@ namespace DarkenSoda.RestHandler
             }
         }
 
-        public static void RemoveHeader(string key)
+        public static void RemoveDefaultHeader(string key)
         {
             Client.DefaultRequestHeaders.Remove(key);
         }
 
-        public static void ClearHeaders()
+        public static void RemoveDefaultHeaders(List<string> keys)
+        {
+            if (keys == null)
+                return;
+
+            foreach (var key in keys)
+            {
+                Client.DefaultRequestHeaders.Remove(key);
+            }
+        }
+
+        public static void ClearDefaultHeaders()
         {
             Client.DefaultRequestHeaders.Clear();
         }
         #endregion
 
         #region Authorization
-        public static void AddAuthorizationHeader(string scheme, string parameter)
+        public static void AddDefaultAuthorizationHeader(string scheme, string parameter)
         {
             Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(scheme, parameter);
         }
 
-        public static void RemoveAuthorizationHeader()
+        public static void RemoveDefaultAuthorizationHeader()
         {
             Client.DefaultRequestHeaders.Authorization = null;
         }
         #endregion
 
         #region Timeout
-        public static void SetTimeout(int seconds)
+        public static void SetDefaultTimeout(int seconds)
         {
             Client.Timeout = TimeSpan.FromSeconds(seconds);
         }

@@ -1,38 +1,197 @@
 # RestHandler
 
-A simple and flexible library for handling RESTful API requests using pure C# `HttpClient` and `Newtonsoft.Json`. This library allows you to easily send `GET`, `POST`, `PUT`, and `DELETE` requests with support for headers, authentication, and custom content types.
+RestHandler is a lightweight, developer-friendly C# library for crafting and sending RESTful HTTP requests with ease. Built on `HttpClient` and `Newtonsoft.Json`, it features a fluent, expressive API that keeps your code clean, readable, and frustration-free. Whether you're calling APIs in a side project or integrating with enterprise systems, RestHandler aims to make networking in C# feel a little more joyful.
 
 ## Jump to
 
 - [Features](#features)
-- [Roadmap](#roadmap)
 - [Installation](#installation)
 - [Usage](#usage)
-  - [GET Example](#sending-a-get-request)
-  - [POST Example](#sending-a-post-request)
-  - [Base Address and Headers](#setting-up-base-url-and-headers)
-  - [Authorization](#adding-authorization)
-  - [Removing Headers or Authorization](#removing-headers-or-authorization)
-  - [Timeouts](#custom-timeout)
-  - [Example using All Features](#example-using-all-features)
+  - [GET Request](#get-request)
+  - [POST Request](#post-request)
+  - [Response Parsing](#response-parsing)
+  - [Callbacks](#callbacks)
+  - [Setting Global Parameter](#setting-global-parameters)
+- [Migrating from Old API](#migrating-from-old-api)
+- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
 
 ## Features
 
-- Ability to send requests and retrieve responses as raw JSON or deserialized objects.
-- Lazy initialization of `HttpClient` to ensure memory efficiency.
-- Support for adding and removing headers.
-- Authorization support (e.g., Bearer tokens, custom schemes).
-- Easy timeout configuration.
-- Chainable `HttpRequestMessageBuilder` for constructing custom requests.
+- Fluent API for clean and chainable request creation
+- Support for `GET`, `POST`, `PUT`, and `DELETE`
+- Global base address, headers, and authorization
+- Response parsing into any type with `ParseAs<T>()` or `ParseAsAsync<T>()`
+- Built-in success/fail/error callbacks
+- Raw JSON access and error state detection
+
+## Installation
+
+1. Clone the repository:
+
+    ```bash
+    git clone https://github.com/DarkenSoda/RestHandler.git
+    ```
+
+2. Install `Newtonsoft.Json` via NuGet:
+
+    ```bash
+    Install-Package Newtonsoft.Json
+    ```
+
+    Or using .NET CLI:
+
+    ```bash
+    dotnet add package Newtonsoft.Json
+    ```
+
+3. Use the `DarkenSoda.RestHandler` namespace in your project.
+
+## Usage
+
+### GET Request
+
+```csharp
+using DarkenSoda.RestHandler;
+
+MyType result = await RestRequest
+    .Get("url")
+    .SendAsync()
+    .ParseAsAsync<MyType>();
+
+Console.WriteLine(result);
+```
+
+### POST Request
+
+```csharp
+RequestResult result = await RestRequest
+    .Post("url")
+    .WithContent(new { name = "test", age = 10 })
+    .WithAuthorization("Bearer", "your-token")
+    .SendAsync();
+
+Console.WriteLine($"Status: {result.State}");
+```
+
+### Response Parsing
+
+You can parse the result directly during or after the request:
+
+```csharp
+// Direct parsing
+MyType data = await RestRequest
+    .Get("url")
+    .SendAsync()
+    .ParseAsAsync<MyType>();
+
+// Deferred parsing
+RequestResult result = await RestRequest
+    .Get("url")
+    .SendAsync();
+
+MyType data2 = result.ParseAs<MyType>();
+```
+
+### Get Raw Json String
+
+You can get the response json as a string directly as follow:
+
+```csharp
+string json1 = result.ResponseJson;
+string json2 = result.GetRawString();
+
+string json3 = await RestRequest
+    .Get("url")
+    .SendAsync()
+    .GetRawStringAsync();
+
+Console.WriteLine(json1);
+Console.WriteLine(json2);
+Console.WriteLine(json3);
+```
+
+### Callbacks
+
+Use OnSuccess, OnFail, and Catch for granular response handling:
+
+```csharp
+await RestRequest
+    .Get("url")
+    .OnSuccess(res => Console.WriteLine("Success: " + res.ResponseJson))
+    .OnFail(res => Console.WriteLine("Failed: " + res.ErrorMessage))
+    .Catch(ex => Console.WriteLine("Error: " + ex.Message))
+    .SendAsync();
+
+```
+
+### Setting Global Parameters
+
+Use HttpClientManager to configure defaults:
+
+```csharp
+// Must be set before sending any requests
+HttpClientManager.SetBaseAddress("https://api.example.com/");
+
+// Default headers
+HttpClientManager.AddDefaultHeader("myKey", "myValue");
+
+// Add multiple headers
+HttpClientManager.AddDefaultHeaders(new Dictionary<string, string>
+{
+    { "key1", "value1" },
+    { "key2", "value2" }
+});
+
+// Authorization
+HttpClientManager.AddDefaultAuthorizationHeader("Bearer", "your-token");
+
+// Timeout in seconds
+HttpClientManager.SetDefaultTimeout(30);
+```
+
+You can remove or clear them too:
+
+```csharp
+HttpClientManager.RemoveBaseAddress();  // Must be set before sending any requests
+
+HttpClientManager.RemoveDefaultHeader("myKey");
+HttpClientManager.RemoveDefaultHeaders(new List<string>() { "key1", "key2" });
+HttpClientManager.ClearDefaultHeaders();
+
+HttpClientManager.RemoveDefaultAuthorizationHeader();
+```
+
+### Migrating from Old API
+
+Old ApiRequest methods are now deprecated. Use RestRequest.Get(...).SendAsync() instead for all new development. Here's how to migrate:
+
+#### Old
+
+```csharp
+var result = await ApiRequest.GetAsync<MyType>("url");
+```
+
+#### New
+
+```csharp
+var result = await RestRequest
+    .Get("url")
+    .SendAsync()
+    .ParseAsAsync<MyType>();
+```
 
 ## Roadmap
 
 Here is the current roadmap for future updates.
 
-- **Exception Handling**: Currently, this library does not handle exception handling. Future updates may include built-in support for managing exceptions to improve usability and robustness.
-- **JsonName Attribute**: Attribute to change the name of a field in the object scheme
+- ✅ Fluent request syntax (RestRequest.Get(...).SendAsync())
+- ✅ Unified RequestResult type for all outcomes
+- ✅ Type-safe parsing via `ParseAs<T>()` and `ParseAsAsync<T>()`
+- ⬜ Native CancellationToken support
+- ⬜ **JsonName Attribute**: Attribute to change the name of a field in the object scheme
+
   ```csharp
     public class Student {
       [JsonName("fullName")]
@@ -42,159 +201,8 @@ Here is the current roadmap for future updates.
       int Age { get; set; }
     }
   ```
+
   this makes it so you can Parse a Json with a scheme `{ "fullName": "MyName", "age": 23 }` to the Student class even if the fields are named differently.
-
-## Installation
-
-1. Download the source code or clone the repository.
-
-    ```bash
-    git clone https://github.com/DarkenSoda/RestHandler.git
-    ```
-
-2. Ensure that you have `Newtonsoft.Json` installed in your project. You can install it via NuGet:
-
-   ```bash
-   Install-Package Newtonsoft.Json
-   ```
-
-    or using CLI
-
-    ```bash
-    dotnet add package Newtonsoft.Json
-    ```
-
-3. Add the `DarkenSoda.RestHandler` namespace to your project.
-
-## Usage
-
-### Sending a GET Request
-
-You can send a `GET` request and get the response as a deserialized object or as a raw string.
-
-```csharp
-using DarkenSoda.RestHandler;
-using System.Threading.Tasks;
-
-// make sure this has the same scheme as the api
-public class MyResponseType
-{
-    public int TestNumber { get; set; }
-}
-
-public async Task GetExample()
-{
-    MyResponseType response = await ApiRequest.GetAsync<MyResponseType>("https://api.example.com/data");
-
-    // Raw JSON response
-    string jsonResponse = await ApiRequest.GetRawStringAsync("https://api.example.com/data");
-}
-```
-
-### Sending a POST Request
-
-To send a `POST` request with content:
-
-```csharp
-using DarkenSoda.RestHandler;
-using System.Threading.Tasks;
-
-public async Task PostExample()
-{
-    MyContent requestData = new MyContent() { Name = "John", Age = 30 };
-
-    MyResponseType response = await ApiRequest.PostAsync<MyResponseType, MyContent>("https://api.example.com/data", requestData);
-
-    // Raw JSON response
-    string jsonResponse = await ApiRequest.PostRawStringAsync<MyContent>("https://api.example.com/data", requestData);
-}
-```
-
-### Setting up Base URL and Headers
-
-Before sending any requests, you can configure the base URL and headers.
-
-```csharp
-using DarkenSoda.RestHandler;
-
-// Set the base address for all requests
-HttpClientManager.SetBaseAddress("https://api.example.com");
-
-// Add custom headers
-HttpClientManager.AddHeader("Custom-Header", "HeaderValue");
-```
-
-### Adding Authorization
-
-If your API requires an authorization token, you can include it in the request:
-
-```csharp
-using DarkenSoda.RestHandler;
-
-HttpClientManager.AddAuthorizationHeader("Bearer", "your-token");
-```
-
-### Removing Headers or Authorization
-
-To remove a specific header or authorization from your request:
-
-```csharp
-HttpClientManager.RemoveHeader("Custom-Header");
-// or
-HttpClientManager.ClearHeaders();   // clear all headers
-
-HttpClientManager.RemoveAuthorizationHeader();
-```
-
-### Custom Timeout
-
-To configure the request timeout:
-
-```csharp
-HttpClientManager.SetTimeout(30); // Timeout in seconds
-```
-
----
-
-### Example Using All Features
-
-This example shows how you can use everything together.
-
-Note you can set the Headers and Authorization for the entire library using the `HttpClientManager` or send them per use as shown below:
-
-```csharp
-static async Task Main(string[] args)
-{
-    // Set the base address for the HttpClient
-    HttpClientManager.SetBaseAddress("https://api.example.com/");
-
-    // Define the headers, scheme, and token
-    var headers = new Dictionary<string, string>
-    {
-        { "Custom-Header", "HeaderValue" },
-        { "Another-Header", "AnotherValue" }
-    };
-    string token = "your-jwt-token";
-    string scheme = "Bearer";
-
-    // Example: Sending a GET request with optional headers and authorization
-    string getUrl = "resource/get";
-    var response = await ApiRequest.GetAsync<MyResponseType>(getUrl, scheme, token, headers);
-    Console.WriteLine("GET Response: " + response);
-
-    // Example: Sending a POST request with headers, authorization, and content
-    string postUrl = "resource/post";
-    MyContent postContent = new MyContent()
-    {
-        Name = "Example",
-        Value = 123
-    };
-    var postResponse = await ApiRequest.PostAsync<MyResponseType2, MyContent>(postUrl, postContent, scheme, token, headers);
-    Console.WriteLine("POST Response: " + postResponse);
-}
-```
-
----
 
 ## Contributing
 
@@ -208,8 +216,6 @@ Contributions are welcome! If you'd like to contribute to this project, please f
 6. Open a pull request.
 
 By following these steps, your contribution and name will be recognized once your pull request is merged.
-
----
 
 ## License
 
