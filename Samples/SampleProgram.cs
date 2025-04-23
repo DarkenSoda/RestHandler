@@ -90,6 +90,9 @@ namespace DarkenSoda.Samples
         }
     }
 
+    /// <summary>
+    /// Sample class to parse the response from the API
+    /// </summary>
     internal sealed class CatImages
     {
         public string? id { get; set; }
