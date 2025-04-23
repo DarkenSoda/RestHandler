@@ -3,21 +3,21 @@ using DarkenSoda.Extensions;
 using DarkenSoda.Models;
 using DarkenSoda.RestHandler;
 
-namespace DarkenSoda.Main
+namespace DarkenSoda.Samples
 {
-    public class Program
+    public sealed class SampleProgram
     {
-        public static async Task Main()
+        public static async Task RunSamplesAsync()
         {
             //* Setting Default Parameters
             // be careful with this, it will set the default parameters for all requests
 
             //! Base Address should only be set before sending any requests, otherwise it will throw an exception
-            HttpClientManager.SetBaseAddress("https://api.thecatapi.com/v1/");
+            // HttpClientManager.SetBaseAddress("https://api.thecatapi.com/v1/");
             // HttpClientManager.RemoveBaseAddress();
 
             List<CatImages> images = await RestRequest
-                .Get("images/search")
+                .Get("https://api.thecatapi.com/v1/images/search")
                 .SendAsync()
                 .ParseAsAsync<List<CatImages>>();   // to parse the response directly during the request
 
@@ -90,7 +90,7 @@ namespace DarkenSoda.Main
         }
     }
 
-    public class CatImages
+    internal sealed class CatImages
     {
         public string? id { get; set; }
         public string? url { get; set; }

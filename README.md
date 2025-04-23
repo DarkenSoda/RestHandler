@@ -28,25 +28,17 @@ RestHandler is a lightweight, developer-friendly C# library for crafting and sen
 
 ## Installation
 
-1. Clone the repository:
+### Install via NuGet
 
-    ```bash
-    git clone https://github.com/DarkenSoda/RestHandler.git
-    ```
+```bash
+dotnet add package RestHandler
+```
 
-2. Install `Newtonsoft.Json` via NuGet:
+Or using the NuGet Package Manager:
 
-    ```bash
-    Install-Package Newtonsoft.Json
-    ```
-
-    Or using .NET CLI:
-
-    ```bash
-    dotnet add package Newtonsoft.Json
-    ```
-
-3. Use the `DarkenSoda.RestHandler` namespace in your project.
+```bash
+Install-Package RestHandler
+```
 
 ## Usage
 
