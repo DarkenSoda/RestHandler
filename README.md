@@ -11,6 +11,7 @@ RestHandler is a lightweight, developer-friendly C# library for crafting and sen
   - [POST Request](#post-request)
   - [Response Parsing](#response-parsing)
   - [Callbacks](#callbacks)
+  - [Setting Timeout](#setting-timeout)
   - [Setting Global Parameter](#setting-global-parameters)
 - [Migrating from Old API](#migrating-from-old-api)
 - [Roadmap](#roadmap)
@@ -48,7 +49,7 @@ Install-Package RestHandler
 using DarkenSoda.RestHandler;
 
 MyType result = await RestRequest
-    .Get("url")
+    .Get("URL")
     .SendAsync()
     .ParseAsAsync<MyType>();
 
@@ -59,7 +60,7 @@ Console.WriteLine(result);
 
 ```csharp
 RequestResult result = await RestRequest
-    .Post("url")
+    .Post("URL")
     .WithContent(new { name = "test", age = 10 })
     .WithAuthorization("Bearer", "your-token")
     .SendAsync();
@@ -74,13 +75,13 @@ You can parse the result directly during or after the request:
 ```csharp
 // Direct parsing
 MyType data = await RestRequest
-    .Get("url")
+    .Get("URL")
     .SendAsync()
     .ParseAsAsync<MyType>();
 
 // Deferred parsing
 RequestResult result = await RestRequest
-    .Get("url")
+    .Get("URL")
     .SendAsync();
 
 MyType data2 = result.ParseAs<MyType>();
@@ -95,7 +96,7 @@ string json1 = result.ResponseJson;
 string json2 = result.GetRawString();
 
 string json3 = await RestRequest
-    .Get("url")
+    .Get("URL")
     .SendAsync()
     .GetRawStringAsync();
 
@@ -110,11 +111,30 @@ Use OnSuccess, OnFail, and Catch for granular response handling:
 
 ```csharp
 await RestRequest
-    .Get("url")
+    .Get("URL")
     .OnSuccess(res => Console.WriteLine("Success: " + res.ResponseJson))
     .OnFail(res => Console.WriteLine("Failed: " + res.ErrorMessage))
     .Catch(ex => Console.WriteLine("Error: " + ex.Message))
     .SendAsync();
+
+```
+
+### Setting Timeout
+
+```csharp
+// Setting Default Timeout for all requests
+HttpClientManager.SetDefaultTimeout(30); // in seconds
+// or using a TimeSpan
+HttpClientManager.SetDefaultTimeout(TimeSpan.FromSeconds(30));
+
+// Setting Timeout per request
+RestRequest
+    .Get("URL")
+    .SetTimeout(5); // in seconds
+// or using a TimeSpan
+RestRequest
+    .Get("URL")
+    .SetTimeout(TimeSpan.FromSeconds(5));
 
 ```
 
@@ -138,9 +158,6 @@ HttpClientManager.AddDefaultHeaders(new Dictionary<string, string>
 
 // Authorization
 HttpClientManager.AddDefaultAuthorizationHeader("Bearer", "your-token");
-
-// Timeout in seconds
-HttpClientManager.SetDefaultTimeout(30);
 ```
 
 You can remove or clear them too:
@@ -162,14 +179,14 @@ Old ApiRequest methods are now deprecated. Use RestRequest.Get(...).SendAsync() 
 #### Old
 
 ```csharp
-var result = await ApiRequest.GetAsync<MyType>("url");
+var result = await ApiRequest.GetAsync<MyType>("URL");
 ```
 
 #### New
 
 ```csharp
 var result = await RestRequest
-    .Get("url")
+    .Get("URL")
     .SendAsync()
     .ParseAsAsync<MyType>();
 ```
@@ -181,20 +198,12 @@ Here is the current roadmap for future updates.
 - ✅ Fluent request syntax (RestRequest.Get(...).SendAsync())
 - ✅ Unified RequestResult type for all outcomes
 - ✅ Type-safe parsing via `ParseAs<T>()` and `ParseAsAsync<T>()`
+- ✅ Global and per Request Timeout
+- ⬜ Request Retrying with Backoff
+- ⬜ Support Query Parameter
+- ⬜ Reusable Request Templates
+- ⬜ Mock Requests for Testing
 - ⬜ Native CancellationToken support
-- ⬜ **JsonName Attribute**: Attribute to change the name of a field in the object scheme
-
-  ```csharp
-    public class Student {
-      [JsonName("fullName")]
-      string Name { get; set; }
-      
-      [JsonName("age")]
-      int Age { get; set; }
-    }
-  ```
-
-  this makes it so you can Parse a Json with a scheme `{ "fullName": "MyName", "age": 23 }` to the Student class even if the fields are named differently.
 
 ## Contributing
 

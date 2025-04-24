@@ -75,7 +75,12 @@ namespace DarkenSoda.RestHandler
         #endregion
 
         #region Timeout
-        public static void SetDefaultTimeout(int seconds)
+        public static void SetDefaultTimeout(TimeSpan timeout)
+        {
+            Client.Timeout = timeout;
+        }
+
+        public static void SetDefaultTimeout(uint seconds)
         {
             Client.Timeout = TimeSpan.FromSeconds(seconds);
         }

@@ -38,6 +38,7 @@ namespace DarkenSoda.Samples
             HttpClientManager.RemoveDefaultAuthorizationHeader();
 
             // HttpClientManager.SetDefaultTimeout(30); // in seconds
+            // HttpClientManager.SetDefaultTimeout(TimeSpan.FromSeconds(30));
 
             Console.WriteLine("\n--------------------------------------------------\n");
 
@@ -87,6 +88,16 @@ namespace DarkenSoda.Samples
             Console.WriteLine(json1);
             Console.WriteLine(json2);
             Console.WriteLine(json3);
+
+            Console.WriteLine("\n--------------------------------------------------\n");
+
+            //* Timeout example
+            RequestResult r3 = await RestRequest
+                .Get("https://api.thecatapi.com/v1/images/search")
+                .SetTimeout(TimeSpan.FromSeconds(1))
+                // .SetTimeout(1) // in seconds
+                .OnFail((response) => { Console.WriteLine("R3 Failed: " + response.ErrorMessage); })
+                .SendAsync();
         }
     }
 

@@ -17,6 +17,7 @@ namespace DarkenSoda.RestHandler
         private Action<RequestResult>? onSuccess;
         private Action<RequestResult>? onFailure;
         private Action<Exception>? onException;
+        private TimeSpan? timeout;
 
         private RestRequest(HttpMethod method, string url)
         {
@@ -134,6 +135,27 @@ namespace DarkenSoda.RestHandler
         }
         #endregion
 
+        #region Timeout
+        /// <summary>
+        /// Sets the timeout for the request.
+        /// </summary>
+        /// <param name="timeout">The timeout duration.</param>
+        public RestRequest SetTimeout(TimeSpan timeout)
+        {
+            this.timeout = timeout;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the timeout for the request in seconds.
+        /// </summary>
+        /// <param name="seconds">The timeout duration in seconds.</param>
+        public RestRequest SetTimeout(uint seconds)
+        {
+            return SetTimeout(TimeSpan.FromSeconds(seconds));
+        }
+        #endregion
+
         #region Callbacks
         /// <summary>
         /// Sets a callback to be invoked on successful request completion.
@@ -179,7 +201,7 @@ namespace DarkenSoda.RestHandler
 
             try
             {
-                var response = await HttpClientManager.Client.SendAsync(requestMessage);
+                HttpResponseMessage response = await ExecuteSendAsync();
                 if (response.IsSuccessStatusCode)
                 {
                     result.State = RequestState.Success;
@@ -203,6 +225,30 @@ namespace DarkenSoda.RestHandler
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Sends the request asynchronously
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation, containing the Http response.</returns>
+        /// <remarks>
+        /// This method sends the request and returns the raw HTTP response without invoking any callbacks.
+        /// if there is a timeout set and uses a CancellationTokenSource to cancel the request if it exceeds the specified timeout.
+        /// </remarks>
+        private async Task<HttpResponseMessage> ExecuteSendAsync()
+        {
+            HttpResponseMessage response;
+            if (timeout.HasValue)
+            {
+                using var cts = new CancellationTokenSource(timeout.Value);
+                response = await HttpClientManager.Client.SendAsync(requestMessage, cts.Token);
+            }
+            else
+            {
+                response = await HttpClientManager.Client.SendAsync(requestMessage);
+            }
+
+            return response;
         }
     }
 }

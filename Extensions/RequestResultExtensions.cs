@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace DarkenSoda.Extensions
 {
-    public static class RestExtensions
+    public static class RequestResultExtensions
     {
         /// <summary>
         /// Parses the response JSON into an object of type T.
