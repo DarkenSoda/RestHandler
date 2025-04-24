@@ -98,6 +98,15 @@ namespace DarkenSoda.Samples
                 // .SetTimeout(1) // in seconds
                 .OnFail((response) => { Console.WriteLine("R3 Failed: " + response.ErrorMessage); })
                 .SendAsync();
+
+            //* Retry example
+            await RestRequest
+                .Get("https://api.thecatapi.com/v1/images/search")
+                .SetRetries(3, (result, attempt) =>
+                {
+                    Console.WriteLine($"Retrying... Attempt: {attempt}");
+                })
+                .SendAsync();
         }
     }
 

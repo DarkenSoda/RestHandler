@@ -10,6 +10,7 @@ namespace DarkenSoda.Models
     /// <item><description>Success: The request was successful.</description></item>
     /// <item><description>Failed: The request failed.</description></item>
     /// <item><description>Error: An error occurred while processing the request.</description></item>
+    /// <item><description>Retrying: The request is being retried.</description></item>
     /// </list>
     /// </remarks>
     public enum RequestState
@@ -18,5 +19,6 @@ namespace DarkenSoda.Models
         Success,
         Failed,
         Error,
+        Retrying,
     }
 }

@@ -12,6 +12,7 @@ RestHandler is a lightweight, developer-friendly C# library for crafting and sen
   - [Response Parsing](#response-parsing)
   - [Callbacks](#callbacks)
   - [Setting Timeout](#setting-timeout)
+  - [Setting Retry Policy](#setting-retry-policy)
   - [Setting Global Parameter](#setting-global-parameters)
 - [Migrating from Old API](#migrating-from-old-api)
 - [Roadmap](#roadmap)
@@ -138,6 +139,18 @@ RestRequest
 
 ```
 
+### Setting Retry Policy
+
+```csharp
+await RestRequest
+    .Get("URL")
+    .SetRetries(3, (result, attempt) =>
+    {
+        Console.WriteLine($"Retrying... Attempt: {attempt}");
+    })
+    .SendAsync();
+```
+
 ### Setting Global Parameters
 
 Use HttpClientManager to configure defaults:
@@ -199,11 +212,10 @@ Here is the current roadmap for future updates.
 - ✅ Unified RequestResult type for all outcomes
 - ✅ Type-safe parsing via `ParseAs<T>()` and `ParseAsAsync<T>()`
 - ✅ Global and per Request Timeout
-- ⬜ Request Retrying with Backoff
+- ✅ Request Retrying with Backoff
+- ✅ Reusable Request Templates
 - ⬜ Support Query Parameter
-- ⬜ Reusable Request Templates
 - ⬜ Mock Requests for Testing
-- ⬜ Native CancellationToken support
 
 ## Contributing
 

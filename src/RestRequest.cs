@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using DarkenSoda.Extensions;
 using DarkenSoda.Models;
 using Newtonsoft.Json;
 
@@ -17,7 +18,9 @@ namespace DarkenSoda.RestHandler
         private Action<RequestResult>? onSuccess;
         private Action<RequestResult>? onFailure;
         private Action<Exception>? onException;
+        private Action<RequestResult, int>? onRetry;
         private TimeSpan? timeout;
+        private int retryCount = 0;
 
         private RestRequest(HttpMethod method, string url)
         {
@@ -188,6 +191,20 @@ namespace DarkenSoda.RestHandler
         }
         #endregion
 
+        #region Retry
+        /// <summary>
+        /// Sets the number of retry attempts for the request.
+        /// </summary>
+        /// <param name="retryCount">The number of retry attempts.</param>
+        /// <param name="retryCallback">The callback to invoke on each retry attempt.</param>
+        public RestRequest SetRetries(int retryCount, Action<RequestResult, int>? retryCallback = null)
+        {
+            this.retryCount = retryCount;
+            onRetry = retryCallback;
+            return this;
+        }
+        #endregion
+
         /// <summary>
         /// Sends the request asynchronously and returns the result.
         /// </summary>
@@ -198,30 +215,41 @@ namespace DarkenSoda.RestHandler
         public async Task<RequestResult> SendAsync()
         {
             var result = new RequestResult { State = RequestState.Sending };
-
-            try
+            HttpResponseMessage? response = null;
+            for (int attempt = 0; attempt <= retryCount; attempt++)
             {
-                HttpResponseMessage response = await ExecuteSendAsync();
-                if (response.IsSuccessStatusCode)
+                if (attempt > 0)
                 {
-                    result.State = RequestState.Success;
-                    result.ResponseJson = await response.Content.ReadAsStringAsync();
-                    onSuccess?.Invoke(result);
+                    result.State = RequestState.Retrying;
+                    onRetry?.Invoke(result, attempt);
+                    // await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
                 }
-                else
+                try
                 {
-                    result.State = RequestState.Failed;
-                    result.ErrorMessage = response.ReasonPhrase;
-                    onFailure?.Invoke(result);
+                    response = await ExecuteSendAsync();
+                    if (response.IsSuccessStatusCode)
+                    {
+                        result.State = RequestState.Success;
+                        result.ResponseJson = await response.Content.ReadAsStringAsync();
+                        onSuccess?.Invoke(result);
+                    }
+                    else
+                    {
+                        result.State = RequestState.Failed;
+                        result.ErrorMessage = response.ReasonPhrase;
+                        onFailure?.Invoke(result);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    result.State = RequestState.Error;
+                    result.ErrorMessage = ex.Message;
+                    onException?.Invoke(ex);
                 }
 
-                response.Dispose();
-            }
-            catch (Exception ex)
-            {
-                result.State = RequestState.Error;
-                result.ErrorMessage = ex.Message;
-                onException?.Invoke(ex);
+                response?.Dispose();
+                if (result.IsSuccess())
+                    break;
             }
 
             return result;
@@ -237,18 +265,40 @@ namespace DarkenSoda.RestHandler
         /// </remarks>
         private async Task<HttpResponseMessage> ExecuteSendAsync()
         {
-            HttpResponseMessage response;
+            var clonedRequest = CloneHttpRequestMessage(requestMessage);
             if (timeout.HasValue)
             {
                 using var cts = new CancellationTokenSource(timeout.Value);
-                response = await HttpClientManager.Client.SendAsync(requestMessage, cts.Token);
-            }
-            else
-            {
-                response = await HttpClientManager.Client.SendAsync(requestMessage);
+                return await HttpClientManager.Client.SendAsync(clonedRequest, cts.Token);
             }
 
-            return response;
+            return await HttpClientManager.Client.SendAsync(clonedRequest);
+        }
+
+        /// <summary>
+        /// Clones a given HttpRequestMessage to create a new instance with the same properties.
+        /// </summary>
+        /// <param name="request">The original HttpRequestMessage to clone.</param>
+        /// <returns>A new HttpRequestMessage instance with the same properties as the original.</returns>
+        private HttpRequestMessage CloneHttpRequestMessage(HttpRequestMessage request)
+        {
+            var clone = new HttpRequestMessage(request.Method, request.RequestUri)
+            {
+                Version = request.Version,
+                Content = request.Content == null ? null : new StreamContent(request.Content.ReadAsStream()),
+            };
+
+            // Copy headers
+            foreach (var header in request.Headers)
+                clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+
+            if (request.Content != null)
+            {
+                foreach (var header in request.Content.Headers)
+                    clone.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+
+            return clone;
         }
     }
 }
