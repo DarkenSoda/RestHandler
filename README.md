@@ -108,14 +108,18 @@ Console.WriteLine(json3);
 
 ### Callbacks
 
-Use OnSuccess, OnFail, and Catch for granular response handling:
+Use OnSuccess, OnFail, OnException and OnRetry for granular response handling:
 
 ```csharp
 await RestRequest
     .Get("URL")
     .OnSuccess(res => Console.WriteLine("Success: " + res.ResponseJson))
     .OnFail(res => Console.WriteLine("Failed: " + res.ErrorMessage))
-    .Catch(ex => Console.WriteLine("Error: " + ex.Message))
+    .OnException(ex => Console.WriteLine("Error: " + ex.Message))
+    .OnRetry((response, retryCount, elapsedTime) =>
+    {
+        Console.WriteLine($"Retrying... {retryCount} - Elapsed Time: {elapsedTime.TotalSeconds:f2}s");
+    }) // Only works if you set the retries
     .SendAsync();
 
 ```
@@ -144,11 +148,27 @@ RestRequest
 ```csharp
 await RestRequest
     .Get("URL")
-    .SetRetries(3, (result, attempt) =>
+    .SetRetries(3) // 3 retries
+    .OnRetry((response, retryCount, elapsedTime) =>
     {
-        Console.WriteLine($"Retrying... Attempt: {attempt}");
+        Console.WriteLine($"Retrying... {retryCount} - Elapsed Time: {elapsedTime.TotalSeconds:f2}s");
     })
     .SendAsync();
+
+// You can set a Backoff strategy as well
+// Check Backoff class for more options:
+// - Fixed: Fixed backoff with a fixed delay
+// - Linear: Linear backoff with an increment value and a maximum delay
+// - Exponential: Exponential backoff with a base delay and a maximum delay
+// - Jitter: Random backoff with a maximum delay
+await RestRequest
+    .Get("URL")
+    .SetRetries(3, Backoff.Fixed(TimeSpan.FromSeconds(1))) // 3 retries with fixed backoff of 1 second
+    .OnRetry((response, retryCount, elapsedTime) =>
+    {
+        Console.WriteLine($"Retrying... {retryCount} - Elapsed Time: {elapsedTime.TotalSeconds:f2}s");
+    })
+    .SendAsync(); 
 ```
 
 ### Setting Global Parameters

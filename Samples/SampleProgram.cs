@@ -2,6 +2,7 @@ using System.Net;
 using DarkenSoda.Extensions;
 using DarkenSoda.Models;
 using DarkenSoda.RestHandler;
+using RestHandler.Models;
 
 namespace DarkenSoda.Samples
 {
@@ -53,7 +54,7 @@ namespace DarkenSoda.Samples
                 .Get("https://api.thecatapi.com/v1/images/search")
                 .OnSuccess((response) => { Console.WriteLine("Succes: " + response.ResponseJson); })
                 .OnFail((response) => { Console.WriteLine("Fail: " + response.ErrorMessage); })
-                .Catch((exception) => { Console.WriteLine("Error: " + exception.Message); })
+                .OnException((exception) => { Console.WriteLine("Error: " + exception.Message); })
                 .SendAsync();
             // .ParseAsAsync<List<CatImages>>(); // to parse the response directly during the request
 
@@ -99,14 +100,33 @@ namespace DarkenSoda.Samples
                 .OnFail((response) => { Console.WriteLine("R3 Failed: " + response.ErrorMessage); })
                 .SendAsync();
 
+            Console.WriteLine("\n--------------------------------------------------\n");
+
             //* Retry example
             await RestRequest
                 .Get("https://api.thecatapi.com/v1/images/search")
-                .SetRetries(3, (result, attempt) =>
+                .SetRetries(3) // 3 retries
+                .OnRetry((response, retryCount, elapsedTime) =>
                 {
-                    Console.WriteLine($"Retrying... Attempt: {attempt}");
+                    Console.WriteLine($"Retrying... {retryCount} - Elapsed Time: {elapsedTime}ms");
                 })
                 .SendAsync();
+
+            // Check Backoff class for more options:
+            // - Fixed: Fixed backoff with a fixed delay
+            // - Linear: Linear backoff with an increment value and a maximum delay
+            // - Exponential: Exponential backoff with a base delay and a maximum delay
+            // - Jitter: Random backoff with a maximum delay
+            await RestRequest
+                .Get("https://api.thecatapi.com/v1/images/search")
+                .SetRetries(3, Backoff.Fixed(TimeSpan.FromSeconds(1))) // 3 retries with fixed backoff of 1 second
+                .OnRetry((response, retryCount, elapsedTime) =>
+                {
+                    Console.WriteLine($"Retrying... {retryCount} - Elapsed Time: {elapsedTime}ms");
+                })
+                .SendAsync();
+
+            Console.WriteLine("\n--------------------------------------------------\n");
         }
     }
 

@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using DarkenSoda.Extensions;
 using DarkenSoda.Models;
 using Newtonsoft.Json;
+using RestHandler.Models;
 
 namespace DarkenSoda.RestHandler
 {
@@ -18,9 +19,15 @@ namespace DarkenSoda.RestHandler
         private Action<RequestResult>? onSuccess;
         private Action<RequestResult>? onFailure;
         private Action<Exception>? onException;
-        private Action<RequestResult, int>? onRetry;
+        private Action<RequestResult, int, TimeSpan>? onRetry;
         private TimeSpan? timeout;
-        private int retryCount = 0;
+        private RetryPolicy? retryPolicy;
+
+        private class RetryPolicy
+        {
+            public int MaxAttempts { get; set; }
+            public Func<int, TimeSpan> DelayStrategy { get; set; } = delegate { return TimeSpan.Zero; };
+        }
 
         private RestRequest(HttpMethod method, string url)
         {
@@ -184,23 +191,63 @@ namespace DarkenSoda.RestHandler
         /// Sets a callback to be invoked on request exception.
         /// </summary>
         /// <param name="exceptionCallback">The callback to invoke on exception.</param>
-        public RestRequest Catch(Action<Exception> exceptionCallback)
+        public RestRequest OnException(Action<Exception> exceptionCallback)
         {
             onException = exceptionCallback;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets a callback to be invoked on request retry.
+        /// </summary>
+        /// <param name="retryCallback">The callback to invoke on retry.</param>
+        /// <remarks>
+        /// This callback provides the current request result, the retry attempt number, and the elapsed time since the start of the request.
+        /// </remarks>
+        public RestRequest OnRetry(Action<RequestResult, int, TimeSpan> retryCallback)
+        {
+            onRetry = retryCallback;
             return this;
         }
         #endregion
 
         #region Retry
         /// <summary>
-        /// Sets the number of retry attempts for the request.
+        /// Sets the number of retries for the request.
         /// </summary>
         /// <param name="retryCount">The number of retry attempts.</param>
-        /// <param name="retryCallback">The callback to invoke on each retry attempt.</param>
-        public RestRequest SetRetries(int retryCount, Action<RequestResult, int>? retryCallback = null)
+        /// <remarks>
+        /// This method configures the request to retry a specified number of times in case of failure.
+        /// The default delay strategy is a fixed delay of 1 second between attempts.
+        /// </remarks>
+        public RestRequest SetRetries(int retryCount)
         {
-            this.retryCount = retryCount;
-            onRetry = retryCallback;
+            this.retryPolicy = new RetryPolicy
+            {
+                MaxAttempts = retryCount,
+                DelayStrategy = Backoff.Fixed(TimeSpan.FromSeconds(1))
+            };
+
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the number of retries for the request with a custom delay strategy.
+        /// </summary>
+        /// <param name="retryCount">The number of retry attempts.</param>
+        /// <param name="delayStartegy">The delay strategy function to determine the delay between attempts.</param>
+        /// <remarks>
+        /// This method configures the request to retry a specified number of times in case of failure.
+        /// The delay strategy function is used to calculate the delay between attempts.
+        /// </remarks> 
+        public RestRequest SetRetries(int retryCount, Func<int, TimeSpan> delayStartegy)
+        {
+            this.retryPolicy = new RetryPolicy
+            {
+                MaxAttempts = retryCount,
+                DelayStrategy = delayStartegy
+            };
+
             return this;
         }
         #endregion
@@ -216,45 +263,37 @@ namespace DarkenSoda.RestHandler
         {
             var result = new RequestResult { State = RequestState.Sending };
             HttpResponseMessage? response = null;
+            int retryCount = retryPolicy?.MaxAttempts ?? 0;
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
             for (int attempt = 0; attempt <= retryCount; attempt++)
             {
                 if (attempt > 0)
-                {
-                    result.State = RequestState.Retrying;
-                    onRetry?.Invoke(result, attempt);
-                    // await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
-                }
+                    await HandleRetryDelayAsync(result, attempt, stopwatch.Elapsed);
+
                 try
                 {
                     response = await ExecuteSendAsync();
-                    if (response.IsSuccessStatusCode)
-                    {
-                        result.State = RequestState.Success;
-                        result.ResponseJson = await response.Content.ReadAsStringAsync();
-                        onSuccess?.Invoke(result);
-                    }
-                    else
-                    {
-                        result.State = RequestState.Failed;
-                        result.ErrorMessage = response.ReasonPhrase;
-                        onFailure?.Invoke(result);
-                    }
+                    await HandleResponseAsync(response, result);
                 }
                 catch (Exception ex)
                 {
-                    result.State = RequestState.Error;
-                    result.ErrorMessage = ex.Message;
-                    onException?.Invoke(ex);
+                    HandleException(ex, result);
                 }
 
                 response?.Dispose();
+
                 if (result.IsSuccess())
                     break;
             }
 
+            stopwatch.Stop();
+            result.ElapsedTime = stopwatch.Elapsed;
+            result.StatusCode ??= response?.StatusCode;
             return result;
         }
 
+        #region Helper Methods
         /// <summary>
         /// Sends the request asynchronously
         /// </summary>
@@ -300,5 +339,88 @@ namespace DarkenSoda.RestHandler
 
             return clone;
         }
+
+        /// <summary>
+        /// Handles the delay before retrying the request.
+        /// </summary>
+        /// <param name="result">The result of the request.</param>
+        /// <param name="attempt">The current retry attempt number.</param>
+        /// <param name="elapsed">The elapsed time since the start of the request.</param>
+        /// <remarks>
+        /// This method updates the request result state to "Retrying" and invokes the retry callback if provided.
+        /// It also calculates the delay based on the retry policy and waits for the specified duration before retrying.
+        /// </remarks>
+        private async Task HandleRetryDelayAsync(RequestResult result, int attempt, TimeSpan elapsed)
+        {
+            result.State = RequestState.Retrying;
+            onRetry?.Invoke(result, attempt, elapsed);
+
+            var delay = retryPolicy?.DelayStrategy?.Invoke(attempt) ?? TimeSpan.Zero;
+            if (delay > TimeSpan.Zero)
+                await Task.Delay(delay);
+        }
+
+        /// <summary>
+        /// Handles the HTTP response and updates the request result accordingly.
+        /// </summary>
+        /// <param name="response">The HTTP response message.</param>
+        /// <param name="result">The result of the request.</param>
+        /// <remarks>
+        /// This method checks the response status code and updates the request result state, error message, and response JSON.
+        /// It also invokes the success or failure callback based on the response status.
+        /// </remarks>
+        private async Task HandleResponseAsync(HttpResponseMessage response, RequestResult result)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                result.State = RequestState.Success;
+                result.ResponseJson = content;
+                onSuccess?.Invoke(result);
+            }
+            else
+            {
+                result.State = RequestState.Failed;
+                result.ErrorMessage = response.ReasonPhrase;
+                onFailure?.Invoke(result);
+            }
+        }
+
+        /// <summary>
+        /// Handles exceptions that occur during the request process.
+        /// </summary>
+        /// <param name="ex">The exception that occurred.</param>
+        /// <param name="result">The result of the request.</param>
+        /// <remarks>
+        /// This method updates the request result state and status code based on the exception type.
+        /// It also invokes the failure or exception callback as appropriate.
+        /// </remarks>
+        private void HandleException(Exception ex, RequestResult result)
+        {
+            switch (ex)
+            {
+                case TaskCanceledException _ when timeout.HasValue && timeout.Value > TimeSpan.Zero:
+                    result.State = RequestState.Failed;
+                    result.StatusCode = System.Net.HttpStatusCode.RequestTimeout;
+                    onFailure?.Invoke(result);
+                    break;
+
+                case HttpRequestException httpEx:
+                    result.State = RequestState.Failed;
+                    result.StatusCode = httpEx.StatusCode ?? System.Net.HttpStatusCode.InternalServerError;
+                    onFailure?.Invoke(result);
+                    break;
+
+                default:
+                    result.State = RequestState.Error;
+                    result.StatusCode = System.Net.HttpStatusCode.InternalServerError;
+                    onException?.Invoke(ex);
+                    break;
+            }
+
+            result.ErrorMessage = ex.Message;
+        }
+        #endregion
     }
 }
