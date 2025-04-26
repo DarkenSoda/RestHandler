@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Web;
 using DarkenSoda.Extensions;
 using DarkenSoda.Models;
 using Newtonsoft.Json;
@@ -129,6 +130,68 @@ namespace DarkenSoda.RestHandler
         {
             requestMessage.Content = new StringContent(content, System.Text.Encoding.UTF8, mediaType);
             return this;
+        }
+        #endregion
+
+        #region Query Parameters
+        /// <summary>
+        /// Adds a single query parameter to the request URL.
+        /// </summary>
+        /// <param name="key">The query parameter key.</param>
+        /// <param name="value">The query parameter value.</param>
+        public RestRequest AddQueryParameters(string key, string value)
+        {
+            if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(value) || requestMessage.RequestUri == null)
+                return this;
+
+            var uriBuilder = new UriBuilder(requestMessage.RequestUri);
+            var query = HttpUtility.ParseQueryString(uriBuilder.Query);
+            query[key] = value;
+            uriBuilder.Query = query.ToString();
+            requestMessage.RequestUri = uriBuilder.Uri;
+
+            return this;
+        }
+
+        /// <summary>
+        /// Adds multiple query parameters to the request URL.
+        /// </summary>
+        /// <param name="parameters">A dictionary of query parameters to add.</param>
+        public RestRequest AddQueryParameters(Dictionary<string, string> parameters)
+        {
+            if (parameters == null || requestMessage.RequestUri == null)
+                return this;
+
+            var uriBuilder = new UriBuilder(requestMessage.RequestUri);
+            var query = HttpUtility.ParseQueryString(uriBuilder.Query);
+
+            foreach (var parameter in parameters)
+            {
+                if (string.IsNullOrEmpty(parameter.Key) || string.IsNullOrEmpty(parameter.Value))
+                    continue;
+
+                query[parameter.Key] = parameter.Value;
+            }
+
+            uriBuilder.Query = query.ToString();
+            requestMessage.RequestUri = uriBuilder.Uri;
+
+            return this;
+        }
+
+        /// <summary>
+        /// Adds query parameters from an object to the request URL.
+        /// </summary>
+        /// <param name="parameters">An object containing query parameters to add.</param>
+        /// <remarks>
+        /// Converts all properties of the object to key-value pairs and adds them as query parameters.
+        /// </remarks> 
+        public RestRequest AddQueryParameters(object parameters)
+        {
+            if (parameters == null || requestMessage.RequestUri == null)
+                return this;
+
+            return AddQueryParameters(parameters.ToDictionary());
         }
         #endregion
 

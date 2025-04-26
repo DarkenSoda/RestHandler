@@ -13,6 +13,7 @@ RestHandler is a lightweight, developer-friendly C# library for crafting and sen
   - [Callbacks](#callbacks)
   - [Setting Timeout](#setting-timeout)
   - [Setting Retry Policy](#setting-retry-policy)
+  - [Adding Query Parameters](#adding-query-parameters)
   - [Setting Global Parameter](#setting-global-parameters)
 - [Migrating from Old API](#migrating-from-old-api)
 - [Roadmap](#roadmap)
@@ -171,6 +172,39 @@ await RestRequest
     .SendAsync(); 
 ```
 
+### Adding Query Parameters
+
+```csharp
+// specifying query parameters in the URL
+await RestRequest
+    .Get("URL?key=val")
+    .SendAsync();
+
+// sending only 1 query parameter
+await RestRequest
+    .Get("URL")
+    .AddQueryParameters("key", "val")
+    .SendAsync();
+
+// sending a dictionary of query parameters
+await RestRequest
+    .Get("URL")
+    .AddQueryParameters(new Dictionary<string, string>()
+    {
+        { "key1", "val1" },
+        { "key2", "val2" },
+        { "key3", "val3" }
+    })
+    .SendAsync();
+
+// sending an object
+var obj = new { key1 = val1, key2 = val2, key3 = val3 };
+await RestRequest
+    .Get("URL")
+    .AddQueryParameters(obj)
+    .SendAsync();
+```
+
 ### Setting Global Parameters
 
 Use HttpClientManager to configure defaults:
@@ -234,7 +268,7 @@ Here is the current roadmap for future updates.
 - ✅ Global and per Request Timeout
 - ✅ Request Retrying with Backoff
 - ✅ Reusable Request Templates
-- ⬜ Support Query Parameter
+- ✅ Support Query Parameter
 - ⬜ Mock Requests for Testing
 
 ## Contributing

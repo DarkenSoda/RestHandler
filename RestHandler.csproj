@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
-    <Version>1.2.1</Version>
+    <Version>1.3.0</Version>
     <Title>RestHandler</Title>
     <Description>An easy way to handle RESTful APIs in C# using a fluent-style wrapper around HttpClient.</Description>
     <PackageId>RestHandler</PackageId>

@@ -127,6 +127,38 @@ namespace DarkenSoda.Samples
                 .SendAsync();
 
             Console.WriteLine("\n--------------------------------------------------\n");
+
+            //* Query Parameters example
+            // specifying query parameters in the URL
+            await RestRequest
+                .Get("https://api.thecatapi.com/v1/images/search?limit=10&page=1&order=DESC")
+                .SendAsync();
+
+            // sending only 1 query parameter
+            await RestRequest
+                .Get("https://api.thecatapi.com/v1/images/search")
+                .AddQueryParameters("limit", "10")
+                .SendAsync();
+
+            // sending a dictionary of query parameters
+            await RestRequest
+                .Get("https://api.thecatapi.com/v1/images/search")
+                .AddQueryParameters(new Dictionary<string, string>()
+                {
+                    { "limit", "10" },
+                    { "page", "1" },
+                    { "order", "DESC" }
+                })
+                .SendAsync();
+
+            // sending an object
+            await RestRequest
+                .Get("https://api.thecatapi.com/v1/images/search")
+                .AddQueryParameters(new { limit = 10, page = 1, order = "DESC" })
+                .OnSuccess((response) => { Console.WriteLine("Success: " + response.ResponseJson); })
+                .SendAsync();
+
+            Console.WriteLine("\n--------------------------------------------------\n");
         }
     }
 
